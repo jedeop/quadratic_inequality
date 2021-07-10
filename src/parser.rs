@@ -7,7 +7,7 @@ use nom::{
     IResult,
 };
 
-use crate::{Monomial, Number, Quadratic};
+use crate::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
 
 fn coefficient(input: &str) -> IResult<&str, Number> {
     map(
@@ -37,8 +37,21 @@ fn quadratic(input: &str) -> IResult<&str, Quadratic> {
     map(tuple((monomial, monomial, monomial)), Quadratic::new)(input)
 }
 
+fn sign(input: &str) -> IResult<&str, Sign> {
+    map(
+        alt((tag("<"), tag("<="), tag("≤"), tag(">"), tag(">="), tag("≥"))),
+        Sign::new,
+    )(input)
+}
+
+fn quadratic_inequality(input: &str) -> IResult<&str, QuadraticInequality> {
+    map(tuple((quadratic, sign)), QuadraticInequality::new)(input)
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::QuadraticInequality;
+
     use super::*;
 
     #[test]
@@ -114,6 +127,36 @@ mod tests {
                     c: 5,
                 }
             ))
-        )
+        );
+    }
+
+    #[test]
+    fn parse_quadratic_inequality() {
+        assert_eq!(
+            quadratic_inequality("x^2+3x-10<0"),
+            Ok((
+                "0",
+                QuadraticInequality {
+                    quadratic: Quadratic {
+                        character: "x".to_string(),
+                        a: 1,
+                        b: 3,
+                        c: -10,
+                    },
+                    sign: Sign::Lt,
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_and_get_solution_of_quadratic_inequality() {
+        assert_eq!(
+            quadratic_inequality("x^2+3x-10≥0")
+                .unwrap()
+                .1
+                .get_solution(),
+            "x ≤ -5 OR x ≥ 2".to_string(),
+        );
     }
 }

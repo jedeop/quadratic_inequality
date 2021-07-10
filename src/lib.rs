@@ -63,6 +63,60 @@ impl Quadratic {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+enum Sign {
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+}
+impl Sign {
+    fn new(s: &str) -> Self {
+        match s {
+            "<" => Self::Lt,
+            "<=" | "≤" => Self::Lte,
+            ">" => Self::Gt,
+            ">=" | "≥" => Self::Gte,
+            _ => panic!("bad inequality sign"),
+        }
+    }
+    fn reverse(&self) -> Self {
+        match self {
+            Self::Lt => Self::Gt,
+            Self::Lte => Self::Gte,
+            Self::Gt => Self::Lt,
+            Self::Gte => Self::Lte,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+struct QuadraticInequality {
+    quadratic: Quadratic,
+    sign: Sign,
+}
+impl QuadraticInequality {
+    fn new(input: (Quadratic, Sign)) -> Self {
+        let (quadratic, sign) = input;
+        Self { quadratic, sign }
+    }
+    fn get_solution(&self) -> String {
+        let (s1, s2) = &self.quadratic.get_solution();
+        let sign = if &self.quadratic.a > &0 {
+            self.sign.clone()
+        } else {
+            self.sign.reverse()
+        };
+        let character = &self.quadratic.character;
+        match sign {
+            Sign::Lt => format!("{} < {} < {}", s1, character, s2),
+            Sign::Lte => format!("{} ≤ {} ≤ {}", s1, character, s2),
+            Sign::Gt => format!("{} < {} OR {} > {}", character, s1, character, s2),
+            Sign::Gte => format!("{} ≤ {} OR {} ≥ {}", character, s1, character, s2),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,6 +132,23 @@ mod tests {
             }
             .get_solution(),
             (-4.0, -1.0)
+        );
+    }
+
+    #[test]
+    fn get_solution_of_quadratic_inequality() {
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 5,
+                    c: 4,
+                },
+                sign: Sign::Lt,
+            }
+            .get_solution(),
+            "-4 < x < -1".to_string()
         );
     }
 }
