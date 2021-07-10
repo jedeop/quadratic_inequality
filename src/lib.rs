@@ -1,4 +1,4 @@
-mod parser;
+pub mod parser;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct Number(i32);
@@ -51,7 +51,6 @@ impl Quadratic {
         }
     }
     fn get_solution(&self) -> (f32, f32) {
-        println!("{:#?}", &self);
         let solution1 = ((-1 * &self.b) as f32
             - ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
             / (2 * &self.a) as f32;
@@ -91,7 +90,7 @@ impl Sign {
 }
 
 #[derive(Debug, PartialEq)]
-struct QuadraticInequality {
+pub struct QuadraticInequality {
     quadratic: Quadratic,
     sign: Sign,
 }
@@ -100,7 +99,7 @@ impl QuadraticInequality {
         let (quadratic, sign) = input;
         Self { quadratic, sign }
     }
-    fn get_solution(&self) -> String {
+    pub fn get_solution(&self) -> String {
         let (s1, s2) = &self.quadratic.get_solution();
         let sign = if &self.quadratic.a > &0 {
             self.sign.clone()

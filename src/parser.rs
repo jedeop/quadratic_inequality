@@ -1,7 +1,7 @@
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
-    character::complete::{alpha1, char, digit0, digit1},
+    character::complete::{alpha1, char, digit1},
     combinator::{map, opt},
     sequence::{preceded, tuple},
     IResult,
@@ -46,6 +46,10 @@ fn sign(input: &str) -> IResult<&str, Sign> {
 
 fn quadratic_inequality(input: &str) -> IResult<&str, QuadraticInequality> {
     map(tuple((quadratic, sign)), QuadraticInequality::new)(input)
+}
+
+pub fn parse(input: &str) -> QuadraticInequality {
+    quadratic_inequality(input).expect("can't parse input").1
 }
 
 #[cfg(test)]
@@ -152,10 +156,7 @@ mod tests {
     #[test]
     fn parse_and_get_solution_of_quadratic_inequality() {
         assert_eq!(
-            quadratic_inequality("x^2+3x-10≥0")
-                .unwrap()
-                .1
-                .get_solution(),
+            parse("x^2+3x-10≥0").get_solution(),
             "x ≤ -5 OR x ≥ 2".to_string(),
         );
     }
