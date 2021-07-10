@@ -1,16 +1,9 @@
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, char, digit0, digit1},
-    combinator::{map, opt},
-    sequence::{preceded, tuple},
-    IResult,
-};
+use nom::{IResult, branch::alt, bytes::complete::{tag, take_while}, character::complete::{alpha1, char, digit0, digit1}, combinator::{map, opt}, sequence::{preceded, tuple}};
 
-use crate::{Monomial, Number, Sign};
+use crate::{Monomial, Number};
 
 fn coefficient(input: &str) -> IResult<&str, Number> {
-    map(digit0, |s: &str| Number::new_with_default(s, 1))(input)
+    map(take_while(|c| matches!(c, '0'..='9' | '+' | '-')), |s: &str| Number::new_with_default(s, 1))(input)
 }
 fn character(input: &str) -> IResult<&str, &str> {
     alpha1(input)
@@ -19,15 +12,10 @@ fn degree(input: &str) -> IResult<&str, Number> {
     map(preceded(char('^'), digit1), Number::new)(input)
 }
 
-fn operator(input: &str) -> IResult<&str, Sign> {
-    map(alt((tag("+"), tag("-"), tag(""))), Sign::new)(input)
-}
-
 fn monomial(input: &str) -> IResult<&str, Monomial> {
     map(
-        tuple((operator, coefficient, opt(character), opt(degree))),
-        |(sign, coefficient, character, degree)| Monomial {
-            sign,
+        tuple((coefficient, opt(character), opt(degree))),
+        |(coefficient, character, degree)| Monomial {
             coefficient,
             character,
             degree,
@@ -55,7 +43,6 @@ mod tests {
             Ok((
                 "",
                 Monomial {
-                    sign: Sign::Plus,
                     coefficient: Number(1),
                     character: Some("x"),
                     degree: Some(Number(2))
@@ -67,8 +54,7 @@ mod tests {
             Ok((
                 "",
                 Monomial {
-                    sign: Sign::Minus,
-                    coefficient: Number(1),
+                    coefficient: Number(-1),
                     character: Some("x"),
                     degree: Some(Number(4))
                 }
@@ -83,7 +69,6 @@ mod tests {
             Ok((
                 "",
                 (Monomial {
-                    sign: Sign::Plus,
                     coefficient: Number(1),
                     character: Some("x"),
                     degree: None,
@@ -98,7 +83,6 @@ mod tests {
             Ok((
                 "",
                 Monomial {
-                    sign: Sign::Plus,
                     coefficient: Number(2),
                     character: None,
                     degree: None,
@@ -115,19 +99,16 @@ mod tests {
                 "",
                 (
                     Monomial {
-                        sign: Sign::Plus,
                         coefficient: Number(1),
                         character: Some("x"),
                         degree: Some(Number(2))
                     },
                     Monomial {
-                        sign: Sign::Plus,
                         coefficient: Number(4),
                         character: Some("x"),
                         degree: None,
                     },
                     Monomial {
-                        sign: Sign::Plus,
                         coefficient: Number(5),
                         character: None,
                         degree: None,
