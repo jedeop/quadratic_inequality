@@ -26,11 +26,35 @@ struct Monomial<'a> {
     degree: Option<Number>,
 }
 
+#[derive(Debug, PartialEq)]
+struct Quadratic {
+    character: String,
+    a: Number,
+    b: Number,
+    c: Number,
+}
+impl Quadratic {
+    fn new((a, b, c): (Monomial, Monomial, Monomial)) -> Self {
+        assert_eq!(a.character, b.character);
+
+        assert_eq!(a.degree, Some(Number(2)));
+        assert_eq!(b.degree, None);
+
+        let character = match a.character {
+            Some(character) => character,
+            None => panic!("wrong quadratic"),
+        };
+
+        Self {
+            character: character.to_string(),
+            a: a.coefficient,
+            b: b.coefficient,
+            c: c.coefficient,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parse_number() {}
 }

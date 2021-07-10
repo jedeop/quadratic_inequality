@@ -1,9 +1,19 @@
-use nom::{IResult, branch::alt, bytes::complete::{tag, take_while}, character::complete::{alpha1, char, digit0, digit1}, combinator::{map, opt}, sequence::{preceded, tuple}};
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_while},
+    character::complete::{alpha1, char, digit0, digit1},
+    combinator::{map, opt},
+    sequence::{preceded, tuple},
+    IResult,
+};
 
-use crate::{Monomial, Number};
+use crate::{Monomial, Number, Quadratic};
 
 fn coefficient(input: &str) -> IResult<&str, Number> {
-    map(take_while(|c| matches!(c, '0'..='9' | '+' | '-')), |s: &str| Number::new_with_default(s, 1))(input)
+    map(
+        take_while(|c| matches!(c, '0'..='9' | '+' | '-')),
+        |s: &str| Number::new_with_default(s, 1),
+    )(input)
 }
 fn character(input: &str) -> IResult<&str, &str> {
     alpha1(input)
@@ -23,8 +33,8 @@ fn monomial(input: &str) -> IResult<&str, Monomial> {
     )(input)
 }
 
-fn quadratic(input: &str) -> IResult<&str, (Monomial, Monomial, Monomial)> {
-    tuple((monomial, monomial, monomial))(input)
+fn quadratic(input: &str) -> IResult<&str, Quadratic> {
+    map(tuple((monomial, monomial, monomial)), Quadratic::new)(input)
 }
 
 #[cfg(test)]
@@ -97,23 +107,12 @@ mod tests {
             quadratic("x^2+4x+5"),
             Ok((
                 "",
-                (
-                    Monomial {
-                        coefficient: Number(1),
-                        character: Some("x"),
-                        degree: Some(Number(2))
-                    },
-                    Monomial {
-                        coefficient: Number(4),
-                        character: Some("x"),
-                        degree: None,
-                    },
-                    Monomial {
-                        coefficient: Number(5),
-                        character: None,
-                        degree: None,
-                    }
-                )
+                Quadratic {
+                    character: "x".to_string(),
+                    a: Number(1),
+                    b: Number(4),
+                    c: Number(5),
+                }
             ))
         )
     }
