@@ -58,7 +58,7 @@ impl Quadratic {
             + ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
             / (2 * &self.a) as f32;
 
-        (solution1, solution2)
+        if solution1 < solution2 { (solution1, solution2) } else { (solution2, solution1) }
     }
 }
 
