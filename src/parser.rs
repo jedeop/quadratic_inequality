@@ -109,9 +109,9 @@ mod tests {
                 "",
                 Quadratic {
                     character: "x".to_string(),
-                    a: Number(1),
-                    b: Number(4),
-                    c: Number(5),
+                    a: 1,
+                    b: 4,
+                    c: 5,
                 }
             ))
         )
