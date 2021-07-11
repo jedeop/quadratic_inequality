@@ -75,6 +75,9 @@ impl Quadratic {
         self.b = -1 * self.b;
         self.c = -1 * self.c;
     }
+    fn get_d(&self) -> i32 {
+        &self.b.pow(2) - 4 * &self.a * self.c
+    }
     fn get_solution(&self) -> (f32, f32) {
         let solution1 = ((-1 * &self.b) as f32
             - ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
@@ -146,6 +149,7 @@ impl QuadraticInequality {
         }
     }
     pub fn get_solution(&self) -> String {
+        let d = self.quadratic.get_d();
         let (s1, s2) = &self.quadratic.get_solution();
         let sign = if self.quadratic.a > 0 {
             self.sign.clone()
@@ -153,11 +157,25 @@ impl QuadraticInequality {
             self.sign.reverse()
         };
         let character = &self.quadratic.character;
-        match sign {
-            Sign::Lt => format!("{} < {} < {}", s1, character, s2),
-            Sign::Lte => format!("{} ≤ {} ≤ {}", s1, character, s2),
-            Sign::Gt => format!("{} < {} OR {} > {}", character, s1, character, s2),
-            Sign::Gte => format!("{} ≤ {} OR {} ≥ {}", character, s1, character, s2),
+        if d < 0 {
+            match sign {
+                Sign::Lt | Sign::Lte => "no solution".to_string(),
+                Sign::Gt | Sign::Gte => "all real number".to_string(),
+            }
+        } else if d > 0 {
+            match sign {
+                Sign::Lt => format!("{} < {} < {}", s1, character, s2),
+                Sign::Lte => format!("{} ≤ {} ≤ {}", s1, character, s2),
+                Sign::Gt => format!("{} < {} OR {} > {}", character, s1, character, s2),
+                Sign::Gte => format!("{} ≤ {} OR {} ≥ {}", character, s1, character, s2),
+            }
+        } else {
+            match sign {
+                Sign::Lt => "no solution".to_string(),
+                Sign::Lte => format!("{} = {}", character, s1),
+                Sign::Gt => format!("all real number with {} ≠ {}", character, s1),
+                Sign::Gte => "all real number".to_string(),
+            }
         }
     }
 }
@@ -335,7 +353,7 @@ mod tests {
             "-4 < x < -1".to_string()
         );
     }
-    
+
     #[test]
     fn get_solution_of_quadratic_inequality_a_lt_0() {
         assert_eq!(
@@ -350,6 +368,75 @@ mod tests {
             }
             .get_solution(),
             "x < 1 OR x > 4".to_string()
+        );
+    }
+
+    #[test]
+    fn get_special_solutions() {
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 4,
+                    c: 4,
+                },
+                sign: Sign::Lte,
+            }
+            .get_solution(),
+            "x = -2".to_string()
+        );
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 4,
+                    c: 4,
+                },
+                sign: Sign::Gte,
+            }
+            .get_solution(),
+            "all real number".to_string()
+        );
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 4,
+                    c: 5,
+                },
+                sign: Sign::Lt,
+            }
+            .get_solution(),
+            "no solution".to_string()
+        );
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 4,
+                    c: 5,
+                },
+                sign: Sign::Gt,
+            }
+            .get_solution(),
+            "all real number".to_string()
+        );
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 4,
+                    c: 5,
+                },
+                sign: Sign::Lte,
+            }
+            .get_solution(),
+            "no solution".to_string()
         );
     }
 }
