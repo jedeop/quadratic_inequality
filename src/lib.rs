@@ -265,23 +265,6 @@ mod tests {
     }
 
     #[test]
-    fn get_solution_of_quadratic_inequality() {
-        assert_eq!(
-            QuadraticInequality {
-                quadratic: Quadratic {
-                    character: "x".to_string(),
-                    a: 1,
-                    b: 5,
-                    c: 4,
-                },
-                sign: Sign::Lt,
-            }
-            .get_solution(),
-            "-4 < x < -1".to_string()
-        );
-    }
-
-    #[test]
     fn new_quadratic_inequality() {
         assert_eq!(
             QuadraticInequality::new((
@@ -334,5 +317,39 @@ mod tests {
         };
 
         assert_eq!(left + right, result);
+    }
+
+    #[test]
+    fn get_solution_of_quadratic_inequality() {
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 5,
+                    c: 4,
+                },
+                sign: Sign::Lt,
+            }
+            .get_solution(),
+            "-4 < x < -1".to_string()
+        );
+    }
+    
+    #[test]
+    fn get_solution_of_quadratic_inequality_a_lt_0() {
+        assert_eq!(
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: -1,
+                    b: 5,
+                    c: -4,
+                },
+                sign: Sign::Lt,
+            }
+            .get_solution(),
+            "x < 1 OR x > 4".to_string()
+        );
     }
 }
