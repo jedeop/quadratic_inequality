@@ -58,7 +58,7 @@ fn quadratic(input: &str) -> IResult<&str, Quadratic> {
 
 fn sign(input: &str) -> IResult<&str, Sign> {
     map(
-        alt((tag("<"), tag("<="), tag("≤"), tag(">"), tag(">="), tag("≥"))),
+        alt((tag("<="), tag("≤"), tag("<"), tag(">="), tag("≥"), tag(">"))),
         Sign::new,
     )(input)
 }
@@ -185,6 +185,25 @@ mod tests {
                         c: -10,
                     },
                     sign: Sign::Lt,
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_quadratic_inequality_lte() {
+        assert_eq!(
+            quadratic_inequality("2x^2+3x-2<=0"),
+            Ok((
+                "",
+                QuadraticInequality {
+                    quadratic: Quadratic {
+                        character: "x".to_string(),
+                        a: 2,
+                        b: 3,
+                        c: -2,
+                    },
+                    sign: Sign::Lte,
                 }
             ))
         );
