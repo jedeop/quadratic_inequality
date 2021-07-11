@@ -1,40 +1,59 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::{tag, take_while1},
     character::complete::{alpha1, char, digit1},
-    combinator::{map, opt},
+    combinator::{map, not, opt},
+    multi::many1,
     sequence::{preceded, tuple},
     IResult,
 };
 
 use crate::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
 
+fn plus_minus(input: &str) -> IResult<&str, &str> {
+    map(opt(alt((tag("+"), tag("-")))), |s| match s {
+        Some(s) => s,
+        None => "+",
+    })(input)
+}
 fn coefficient(input: &str) -> IResult<&str, Number> {
-    map(
-        take_while(|c| matches!(c, '0'..='9' | '+' | '-')),
-        |s: &str| Number::new_with_default(s, 1),
-    )(input)
+    map(take_while1(|c| matches!(c, '0'..='9')), |s: &str| {
+        Number::new_with_default(Some(s), 1)
+    })(input)
 }
 fn character(input: &str) -> IResult<&str, &str> {
     alpha1(input)
 }
 fn degree(input: &str) -> IResult<&str, Number> {
-    map(preceded(char('^'), digit1), Number::new)(input)
+    map(opt(preceded(char('^'), digit1)), |s| {
+        Number::new_with_default(s, 1)
+    })(input)
+}
+fn coefficient_character(input: &str) -> IResult<&str, (Number, Option<&str>)> {
+    alt((
+        tuple((coefficient, map(not(character), |_| None))),
+        map(tuple((opt(coefficient), character)), |(n, s)| {
+            (n.unwrap_or(Number(1)), Some(s))
+        }),
+    ))(input)
 }
 
 fn monomial(input: &str) -> IResult<&str, Monomial> {
     map(
-        tuple((coefficient, opt(character), opt(degree))),
-        |(coefficient, character, degree)| Monomial {
-            coefficient,
-            character,
-            degree,
+        tuple((plus_minus, coefficient_character, degree)),
+        |(plus_minus, (mut coefficient, character), degree)| {
+            coefficient.set_sign(plus_minus);
+            Monomial {
+                coefficient,
+                character,
+                degree,
+            }
         },
     )(input)
 }
 
 fn quadratic(input: &str) -> IResult<&str, Quadratic> {
-    map(tuple((monomial, monomial, monomial)), Quadratic::new)(input)
+    map(many1(monomial), Quadratic::new)(input)
 }
 
 fn sign(input: &str) -> IResult<&str, Sign> {
@@ -72,7 +91,7 @@ mod tests {
                 Monomial {
                     coefficient: Number(1),
                     character: Some("x"),
-                    degree: Some(Number(2))
+                    degree: Number(2)
                 }
             ))
         );
@@ -83,7 +102,7 @@ mod tests {
                 Monomial {
                     coefficient: Number(-1),
                     character: Some("x"),
-                    degree: Some(Number(4))
+                    degree: Number(4)
                 }
             ))
         );
@@ -98,7 +117,7 @@ mod tests {
                 (Monomial {
                     coefficient: Number(1),
                     character: Some("x"),
-                    degree: None,
+                    degree: Number(1),
                 })
             ))
         );
@@ -112,14 +131,14 @@ mod tests {
                 Monomial {
                     coefficient: Number(2),
                     character: None,
-                    degree: None,
+                    degree: Number(1),
                 }
             ))
         );
     }
 
     #[test]
-    fn parse_quadratic() {
+    fn parse_quadratic_1() {
         assert_eq!(
             quadratic("x^2+4x+5"),
             Ok((
@@ -128,6 +147,21 @@ mod tests {
                     character: "x".to_string(),
                     a: 1,
                     b: 4,
+                    c: 5,
+                }
+            ))
+        );
+    }
+    #[test]
+    fn parse_quadratic_2() {
+        assert_eq!(
+            quadratic("x^2+4x+5+7x"),
+            Ok((
+                "",
+                Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 11,
                     c: 5,
                 }
             ))

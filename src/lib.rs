@@ -3,17 +3,25 @@ pub mod parser;
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct Number(i32);
 impl Number {
-    fn new(input: &str) -> Self {
-        Number(input.parse::<i32>().unwrap())
+    fn new_with_default(input: Option<&str>, default: i32) -> Self {
+        let num = match input {
+            Some(degree) => match degree.parse::<i32>() {
+                Ok(degree) => degree,
+                Err(_) => match degree.chars().next() {
+                    Some('-') => -1 * default,
+                    _ => default,
+                },
+            },
+            None => default,
+        };
+        Number(num)
     }
-    fn new_with_default(input: &str, default: i32) -> Self {
-        Number(input.parse::<i32>().unwrap_or_else(|_| {
-            if input.chars().next() == Some('-') {
-                -1 * default
-            } else {
-                default
-            }
-        }))
+    fn set_sign(&mut self, sign: &str) {
+        let val = self.0.abs();
+        self.0 = match sign {
+            "-" => -1 * val,
+            _ => val,
+        };
     }
 }
 
@@ -21,7 +29,7 @@ impl Number {
 struct Monomial<'a> {
     coefficient: Number,
     character: Option<&'a str>,
-    degree: Option<Number>,
+    degree: Number,
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,22 +40,32 @@ struct Quadratic {
     c: i32,
 }
 impl Quadratic {
-    fn new((a, b, c): (Monomial, Monomial, Monomial)) -> Self {
-        assert_eq!(a.character, b.character);
-
-        assert_eq!(a.degree, Some(Number(2)));
-        assert_eq!(b.degree, None);
-
-        let character = match a.character {
-            Some(character) => character,
-            None => panic!("wrong quadratic"),
-        };
-
+    fn new(monomials: Vec<Monomial>) -> Self {
+        let mut character = None;
+        monomials.iter().for_each(|m| {
+            if m.character.is_none() {
+                return;
+            }
+            if character.is_none() {
+                character = m.character
+            } else if m.character != character {
+                panic!("quadratic character is confused")
+            }
+        });
+        let (a, b, c) = monomials.iter().fold((0, 0, 0), |(a, b, c), monomial| {
+            let val = monomial.coefficient.0;
+            match (monomial.character, monomial.degree) {
+                (Some(_), Number(2)) => (a + val, b, c),
+                (Some(_), Number(1)) => (a, b + val, c),
+                (None, Number(1)) => (a, b, c + val),
+                _ => panic!("not quadratic"),
+            }
+        });
         Self {
-            character: character.to_string(),
-            a: a.coefficient.0,
-            b: b.coefficient.0,
-            c: c.coefficient.0,
+            character: character.unwrap_or("").to_string(),
+            a,
+            b,
+            c,
         }
     }
     fn get_solution(&self) -> (f32, f32) {
@@ -58,7 +76,11 @@ impl Quadratic {
             + ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
             / (2 * &self.a) as f32;
 
-        if solution1 < solution2 { (solution1, solution2) } else { (solution2, solution1) }
+        if solution1 < solution2 {
+            (solution1, solution2)
+        } else {
+            (solution2, solution1)
+        }
     }
 }
 
@@ -101,7 +123,7 @@ impl QuadraticInequality {
     }
     pub fn get_solution(&self) -> String {
         let (s1, s2) = &self.quadratic.get_solution();
-        let sign = if &self.quadratic.a > &0 {
+        let sign = if self.quadratic.a > 0 {
             self.sign.clone()
         } else {
             self.sign.reverse()
@@ -119,6 +141,90 @@ impl QuadraticInequality {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_quadratic() {
+        assert_eq!(
+            Quadratic::new(vec![
+                Monomial {
+                    coefficient: Number(1),
+                    character: Some("x"),
+                    degree: Number(2)
+                },
+                Monomial {
+                    coefficient: Number(5),
+                    character: Some("x"),
+                    degree: Number(1)
+                },
+                Monomial {
+                    coefficient: Number(4),
+                    character: None,
+                    degree: Number(1)
+                },
+                Monomial {
+                    coefficient: Number(3),
+                    character: Some("x"),
+                    degree: Number(1)
+                },
+            ]),
+            Quadratic {
+                character: "x".to_string(),
+                a: 1,
+                b: 8,
+                c: 4,
+            }
+        );
+    }
+    #[test]
+    fn new_quadratic_2() {
+        assert_eq!(
+            Quadratic::new(vec![
+                Monomial {
+                    coefficient: Number(1),
+                    character: Some("x"),
+                    degree: Number(2)
+                },
+                Monomial {
+                    coefficient: Number(5),
+                    character: Some("x"),
+                    degree: Number(1)
+                },
+                Monomial {
+                    coefficient: Number(4),
+                    character: None,
+                    degree: Number(1)
+                },
+            ]),
+            Quadratic {
+                character: "x".to_string(),
+                a: 1,
+                b: 5,
+                c: 4,
+            }
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn new_quadratic_wrong_character() {
+        Quadratic::new(vec![
+            Monomial {
+                coefficient: Number(1),
+                character: Some("x"),
+                degree: Number(2),
+            },
+            Monomial {
+                coefficient: Number(5),
+                character: Some("y"),
+                degree: Number(1),
+            },
+            Monomial {
+                coefficient: Number(4),
+                character: None,
+                degree: Number(0),
+            },
+        ]);
+    }
 
     #[test]
     fn get_solution_of_quadratic() {
