@@ -64,7 +64,10 @@ fn sign(input: &str) -> IResult<&str, Sign> {
 }
 
 fn quadratic_inequality(input: &str) -> IResult<&str, QuadraticInequality> {
-    map(tuple((quadratic, sign)), QuadraticInequality::new)(input)
+    map(
+        tuple((quadratic, sign, quadratic)),
+        QuadraticInequality::new,
+    )(input)
 }
 
 pub fn parse(input: &str) -> QuadraticInequality {
@@ -173,7 +176,7 @@ mod tests {
         assert_eq!(
             quadratic_inequality("x^2+3x-10<0"),
             Ok((
-                "0",
+                "",
                 QuadraticInequality {
                     quadratic: Quadratic {
                         character: "x".to_string(),

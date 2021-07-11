@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 pub mod parser;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -68,6 +70,11 @@ impl Quadratic {
             c,
         }
     }
+    fn reverse(&mut self) {
+        self.a = -1 * self.a;
+        self.b = -1 * self.b;
+        self.c = -1 * self.c;
+    }
     fn get_solution(&self) -> (f32, f32) {
         let solution1 = ((-1 * &self.b) as f32
             - ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
@@ -80,6 +87,19 @@ impl Quadratic {
             (solution1, solution2)
         } else {
             (solution2, solution1)
+        }
+    }
+}
+
+impl Add for Quadratic {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            character: self.character,
+            a: self.a + rhs.a,
+            b: self.b + rhs.b,
+            c: self.c + rhs.c,
         }
     }
 }
@@ -117,9 +137,13 @@ pub struct QuadraticInequality {
     sign: Sign,
 }
 impl QuadraticInequality {
-    fn new(input: (Quadratic, Sign)) -> Self {
-        let (quadratic, sign) = input;
-        Self { quadratic, sign }
+    fn new(input: (Quadratic, Sign, Quadratic)) -> Self {
+        let (left, sign, mut right) = input;
+        right.reverse();
+        Self {
+            quadratic: left + right,
+            sign,
+        }
     }
     pub fn get_solution(&self) -> String {
         let (s1, s2) = &self.quadratic.get_solution();
@@ -255,5 +279,60 @@ mod tests {
             .get_solution(),
             "-4 < x < -1".to_string()
         );
+    }
+
+    #[test]
+    fn new_quadratic_inequality() {
+        assert_eq!(
+            QuadraticInequality::new((
+                Quadratic {
+                    character: "x".to_string(),
+                    a: 1,
+                    b: 5,
+                    c: 2,
+                },
+                Sign::Lt,
+                Quadratic {
+                    character: "x".to_string(),
+                    a: -1,
+                    b: 0,
+                    c: -2,
+                }
+            )),
+            QuadraticInequality {
+                quadratic: Quadratic {
+                    character: "x".to_string(),
+                    a: 2,
+                    b: 5,
+                    c: 4,
+                },
+                sign: Sign::Lt,
+            }
+        );
+    }
+
+    #[test]
+    fn add_quadratic() {
+        let left = Quadratic {
+            character: "x".to_string(),
+            a: 1,
+            b: 3,
+            c: 2,
+        };
+
+        let right = Quadratic {
+            character: "x".to_string(),
+            a: 3,
+            b: 1,
+            c: -3,
+        };
+        let result = Quadratic {
+            character: "x".to_string(),
+            a: 4,
+            b: 4,
+            c: -1,
+        };
+
+        assert_eq!(left + right, result);
     }
 }
