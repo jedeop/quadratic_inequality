@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{cmp::Ordering, ops::Add};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) struct Number(i32);
@@ -11,7 +11,7 @@ impl Number {
             Some(degree) => match degree.parse::<i32>() {
                 Ok(degree) => degree,
                 Err(_) => match degree.chars().next() {
-                    Some('-') => -1 * default,
+                    Some('-') => -default,
                     _ => default,
                 },
             },
@@ -22,7 +22,7 @@ impl Number {
     pub(crate) fn set_sign(&mut self, sign: &str) {
         let val = self.0.abs();
         self.0 = match sign {
-            "-" => -1 * val,
+            "-" => -val,
             _ => val,
         };
     }
@@ -85,19 +85,17 @@ impl Quadratic {
         }
     }
     fn reverse(&mut self) {
-        self.a = -1 * self.a;
-        self.b = -1 * self.b;
-        self.c = -1 * self.c;
+        self.a *= -1;
+        self.b *= -1;
+        self.c *= -1;
     }
     fn get_d(&self) -> i32 {
-        &self.b.pow(2) - 4 * &self.a * self.c
+        self.b.pow(2) - 4 * &self.a * self.c
     }
     fn get_solution(&self) -> (f32, f32) {
-        let solution1 = ((-1 * &self.b) as f32
-            - ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
+        let solution1 = ((-self.b) as f32 - ((self.b.pow(2) - 4 * self.a * self.c) as f32).sqrt())
             / (2 * &self.a) as f32;
-        let solution2 = ((-1 * &self.b) as f32
-            + ((&self.b.pow(2) - 4 * &self.a * self.c) as f32).sqrt())
+        let solution2 = ((-self.b) as f32 + ((self.b.pow(2) - 4 * self.a * self.c) as f32).sqrt())
             / (2 * &self.a) as f32;
 
         if solution1 < solution2 {
@@ -175,25 +173,23 @@ impl QuadraticInequality {
             self.sign.reverse()
         };
         let character = &self.quadratic.character;
-        if d < 0 {
-            match sign {
+        match d.cmp(&0) {
+            Ordering::Less => match sign {
                 Sign::Lt | Sign::Lte => "no solution".to_string(),
                 Sign::Gt | Sign::Gte => "all real number".to_string(),
-            }
-        } else if d > 0 {
-            match sign {
+            },
+            Ordering::Greater => match sign {
                 Sign::Lt => format!("{} < {} < {}", s1, character, s2),
                 Sign::Lte => format!("{} ≤ {} ≤ {}", s1, character, s2),
                 Sign::Gt => format!("{} < {} OR {} > {}", character, s1, character, s2),
                 Sign::Gte => format!("{} ≤ {} OR {} ≥ {}", character, s1, character, s2),
-            }
-        } else {
-            match sign {
+            },
+            Ordering::Equal => match sign {
                 Sign::Lt => "no solution".to_string(),
                 Sign::Lte => format!("{} = {}", character, s1),
                 Sign::Gt => format!("all real number with {} ≠ {}", character, s1),
                 Sign::Gte => "all real number".to_string(),
-            }
+            },
         }
     }
 }

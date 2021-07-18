@@ -11,10 +11,7 @@ use nom::{
 use crate::types::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
 
 fn plus_minus(input: &str) -> IResult<&str, &str> {
-    map(opt(alt((tag("+"), tag("-")))), |s| match s {
-        Some(s) => s,
-        None => "+",
-    })(input)
+    map(opt(alt((tag("+"), tag("-")))), |s| s.unwrap_or("+"))(input)
 }
 fn coefficient(input: &str) -> IResult<&str, Number> {
     map(take_while1(|c| matches!(c, '0'..='9')), |s: &str| {
@@ -33,7 +30,7 @@ fn coefficient_character(input: &str) -> IResult<&str, (Number, Option<&str>)> {
     alt((
         tuple((coefficient, map(not(character), |_| None))),
         map(tuple((opt(coefficient), character)), |(n, s)| {
-            (n.unwrap_or(Number::new(1)), Some(s))
+            (n.unwrap_or_else(|| Number::new(1)), Some(s))
         }),
     ))(input)
 }
