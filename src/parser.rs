@@ -8,7 +8,7 @@ use nom::{
     IResult,
 };
 
-use crate::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
+use crate::types::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
 
 fn plus_minus(input: &str) -> IResult<&str, &str> {
     map(opt(alt((tag("+"), tag("-")))), |s| match s {
@@ -33,7 +33,7 @@ fn coefficient_character(input: &str) -> IResult<&str, (Number, Option<&str>)> {
     alt((
         tuple((coefficient, map(not(character), |_| None))),
         map(tuple((opt(coefficient), character)), |(n, s)| {
-            (n.unwrap_or(Number(1)), Some(s))
+            (n.unwrap_or(Number::new(1)), Some(s))
         }),
     ))(input)
 }
@@ -43,17 +43,13 @@ fn monomial(input: &str) -> IResult<&str, Monomial> {
         tuple((plus_minus, coefficient_character, degree)),
         |(plus_minus, (mut coefficient, character), degree)| {
             coefficient.set_sign(plus_minus);
-            Monomial {
-                coefficient,
-                character,
-                degree,
-            }
+            Monomial::new(coefficient, character, degree)
         },
     )(input)
 }
 
 fn quadratic(input: &str) -> IResult<&str, Quadratic> {
-    map(many1(monomial), Quadratic::new)(input)
+    map(many1(monomial), Quadratic::from_monomials)(input)
 }
 
 fn sign(input: &str) -> IResult<&str, Sign> {
@@ -66,47 +62,36 @@ fn sign(input: &str) -> IResult<&str, Sign> {
 fn quadratic_inequality(input: &str) -> IResult<&str, QuadraticInequality> {
     map(
         tuple((quadratic, sign, quadratic)),
-        QuadraticInequality::new,
+        QuadraticInequality::from_expr,
     )(input)
 }
 
-pub fn parse(input: &str) -> QuadraticInequality {
+pub(crate) fn parse(input: &str) -> QuadraticInequality {
     quadratic_inequality(input).expect("can't parse input").1
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::QuadraticInequality;
+    use crate::types::QuadraticInequality;
 
     use super::*;
 
     #[test]
     fn parse_degree() {
-        assert_eq!(degree("^3"), Ok(("", Number(3))))
+        assert_eq!(degree("^3"), Ok(("", Number::new(3))))
     }
 
     #[test]
     fn parse_monomial() {
         assert_eq!(
             monomial("+x^2"),
-            Ok((
-                "",
-                Monomial {
-                    coefficient: Number(1),
-                    character: Some("x"),
-                    degree: Number(2)
-                }
-            ))
+            Ok(("", Monomial::new(Number::new(1), Some("x"), Number::new(2))))
         );
         assert_eq!(
             monomial("-x^4"),
             Ok((
                 "",
-                Monomial {
-                    coefficient: Number(-1),
-                    character: Some("x"),
-                    degree: Number(4)
-                }
+                Monomial::new(Number::new(-1), Some("x"), Number::new(4))
             ))
         );
     }
@@ -117,11 +102,7 @@ mod tests {
             monomial("x"),
             Ok((
                 "",
-                (Monomial {
-                    coefficient: Number(1),
-                    character: Some("x"),
-                    degree: Number(1),
-                })
+                (Monomial::new(Number::new(1), Some("x"), Number::new(1),))
             ))
         );
     }
@@ -129,14 +110,7 @@ mod tests {
     fn parse_monomial_const() {
         assert_eq!(
             monomial("2"),
-            Ok((
-                "",
-                Monomial {
-                    coefficient: Number(2),
-                    character: None,
-                    degree: Number(1),
-                }
-            ))
+            Ok(("", Monomial::new(Number::new(2), None, Number::new(1),)))
         );
     }
 
@@ -144,30 +118,14 @@ mod tests {
     fn parse_quadratic_1() {
         assert_eq!(
             quadratic("x^2+4x+5"),
-            Ok((
-                "",
-                Quadratic {
-                    character: "x".to_string(),
-                    a: 1,
-                    b: 4,
-                    c: 5,
-                }
-            ))
+            Ok(("", Quadratic::new("x".to_string(), 1, 4, 5,)))
         );
     }
     #[test]
     fn parse_quadratic_2() {
         assert_eq!(
             quadratic("x^2+4x+5+7x"),
-            Ok((
-                "",
-                Quadratic {
-                    character: "x".to_string(),
-                    a: 1,
-                    b: 11,
-                    c: 5,
-                }
-            ))
+            Ok(("", Quadratic::new("x".to_string(), 1, 11, 5,)))
         );
     }
 
@@ -177,15 +135,7 @@ mod tests {
             quadratic_inequality("x^2+3x-10<0"),
             Ok((
                 "",
-                QuadraticInequality {
-                    quadratic: Quadratic {
-                        character: "x".to_string(),
-                        a: 1,
-                        b: 3,
-                        c: -10,
-                    },
-                    sign: Sign::Lt,
-                }
+                QuadraticInequality::new(Quadratic::new("x".to_string(), 1, 3, -10,), Sign::Lt,)
             ))
         );
     }
@@ -196,15 +146,7 @@ mod tests {
             quadratic_inequality("2x^2+3x-2<=0"),
             Ok((
                 "",
-                QuadraticInequality {
-                    quadratic: Quadratic {
-                        character: "x".to_string(),
-                        a: 2,
-                        b: 3,
-                        c: -2,
-                    },
-                    sign: Sign::Lte,
-                }
+                QuadraticInequality::new(Quadratic::new("x".to_string(), 2, 3, -2,), Sign::Lte,)
             ))
         );
     }
