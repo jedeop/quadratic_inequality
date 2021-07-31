@@ -7,6 +7,9 @@ fn main() {
         process::exit(1);
     }
     let input = &args[1];
-    println!("{}", input);
-    println!("{}", quadratic_inequality::solve(input));
+
+    match quadratic_inequality::solve(input) {
+        Ok(res) => println!("{}", res),
+        Err(e) => eprintln!("{}", e),
+    }
 }

@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, ops::Add};
 
+use crate::error::{Error, Result};
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) struct Number(i32);
 impl Number {
@@ -56,33 +58,44 @@ impl Quadratic {
     pub(crate) fn new(character: String, a: i32, b: i32, c: i32) -> Self {
         Self { character, a, b, c }
     }
-    pub(crate) fn from_monomials(monomials: Vec<Monomial>) -> Self {
-        let mut character = None;
-        monomials.iter().for_each(|m| {
-            if m.character.is_none() {
-                return;
-            }
-            if character.is_none() {
-                character = m.character
-            } else if m.character != character {
-                panic!("quadratic character is confused")
-            }
-        });
-        let (a, b, c) = monomials.iter().fold((0, 0, 0), |(a, b, c), monomial| {
-            let val = monomial.coefficient.0;
-            match (monomial.character, monomial.degree) {
-                (Some(_), Number(2)) => (a + val, b, c),
-                (Some(_), Number(1)) => (a, b + val, c),
-                (None, Number(1)) => (a, b, c + val),
-                _ => panic!("not quadratic"),
-            }
-        });
-        Self {
+    pub(crate) fn from_monomials(monomials: Vec<Monomial>) -> Result<Self> {
+        let character: Option<&str> =
+            monomials
+                .iter()
+                .fold(Ok(None), |old, Monomial { character: new, .. }| match new {
+                    None => old,
+                    Some(new) => match old {
+                        Err(_) => old,
+                        Ok(None) => Ok(Some(*new)),
+                        Ok(Some(old)) => {
+                            if *new != old {
+                                Err(Error::InvalidCharacter {
+                                    expected: old.to_string(),
+                                    found: new.to_string(),
+                                })
+                            } else {
+                                Ok(Some(old))
+                            }
+                        }
+                    },
+                })?;
+        let (a, b, c) = monomials
+            .iter()
+            .try_fold((0, 0, 0), |(a, b, c), monomial| {
+                let val = monomial.coefficient.0;
+                match (monomial.character, monomial.degree) {
+                    (Some(_), Number(2)) => Ok((a + val, b, c)),
+                    (Some(_), Number(1)) => Ok((a, b + val, c)),
+                    (None, Number(1)) => Ok((a, b, c + val)),
+                    _ => Err(Error::InvalidQuadratic),
+                }
+            })?;
+        Ok(Self {
             character: character.unwrap_or("").to_string(),
             a,
             b,
             c,
-        }
+        })
     }
     fn reverse(&mut self) {
         self.a *= -1;
@@ -127,13 +140,13 @@ pub(crate) enum Sign {
     Gte,
 }
 impl Sign {
-    pub(crate) fn new(s: &str) -> Self {
+    pub(crate) fn new(s: &str) -> Result<Self> {
         match s {
-            "<" => Self::Lt,
-            "<=" | "≤" => Self::Lte,
-            ">" => Self::Gt,
-            ">=" | "≥" => Self::Gte,
-            _ => panic!("bad inequality sign"),
+            "<" => Ok(Self::Lt),
+            "<=" | "≤" => Ok(Self::Lte),
+            ">" => Ok(Self::Gt),
+            ">=" | "≥" => Ok(Self::Gte),
+            k => Err(Error::InvalidIneqSign(k.to_string())),
         }
     }
     fn reverse(&self) -> Self {
@@ -223,12 +236,12 @@ mod tests {
                     degree: Number(1)
                 },
             ]),
-            Quadratic {
+            Ok(Quadratic {
                 character: "x".to_string(),
                 a: 1,
                 b: 8,
                 c: 4,
-            }
+            })
         );
     }
     #[test]
@@ -251,35 +264,40 @@ mod tests {
                     degree: Number(1)
                 },
             ]),
-            Quadratic {
+            Ok(Quadratic {
                 character: "x".to_string(),
                 a: 1,
                 b: 5,
                 c: 4,
-            }
+            })
         );
     }
 
     #[test]
-    #[should_panic]
     fn new_quadratic_wrong_character() {
-        Quadratic::from_monomials(vec![
-            Monomial {
-                coefficient: Number(1),
-                character: Some("x"),
-                degree: Number(2),
-            },
-            Monomial {
-                coefficient: Number(5),
-                character: Some("y"),
-                degree: Number(1),
-            },
-            Monomial {
-                coefficient: Number(4),
-                character: None,
-                degree: Number(0),
-            },
-        ]);
+        assert_eq!(
+            Quadratic::from_monomials(vec![
+                Monomial {
+                    coefficient: Number(1),
+                    character: Some("x"),
+                    degree: Number(2),
+                },
+                Monomial {
+                    coefficient: Number(5),
+                    character: Some("y"),
+                    degree: Number(1),
+                },
+                Monomial {
+                    coefficient: Number(4),
+                    character: None,
+                    degree: Number(0),
+                },
+            ]),
+            Err(Error::InvalidCharacter {
+                expected: "x".to_string(),
+                found: "y".to_string()
+            })
+        );
     }
 
     #[test]

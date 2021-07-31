@@ -2,13 +2,17 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alpha1, char, digit1},
-    combinator::{map, not, opt},
+    combinator::{map, map_res, not, opt},
     multi::many1,
     sequence::{preceded, tuple},
-    IResult,
 };
 
-use crate::types::{Monomial, Number, Quadratic, QuadraticInequality, Sign};
+use crate::{
+    error::{Error, Result},
+    types::{Monomial, Number, Quadratic, QuadraticInequality, Sign},
+};
+
+type IResult<'a, I, O> = nom::IResult<I, O, Error<'a>>;
 
 fn plus_minus(input: &str) -> IResult<&str, &str> {
     map(opt(alt((tag("+"), tag("-")))), |s| s.unwrap_or("+"))(input)
@@ -46,11 +50,11 @@ fn monomial(input: &str) -> IResult<&str, Monomial> {
 }
 
 fn quadratic(input: &str) -> IResult<&str, Quadratic> {
-    map(many1(monomial), Quadratic::from_monomials)(input)
+    map_res(many1(monomial), Quadratic::from_monomials)(input)
 }
 
 fn sign(input: &str) -> IResult<&str, Sign> {
-    map(
+    map_res(
         alt((tag("<="), tag("≤"), tag("<"), tag(">="), tag("≥"), tag(">"))),
         Sign::new,
     )(input)
@@ -63,8 +67,12 @@ fn quadratic_inequality(input: &str) -> IResult<&str, QuadraticInequality> {
     )(input)
 }
 
-pub(crate) fn parse(input: &str) -> QuadraticInequality {
-    quadratic_inequality(input).expect("can't parse input").1
+pub(crate) fn parse(input: &str) -> Result<QuadraticInequality> {
+    match quadratic_inequality(input) {
+        Ok(quad_ineq) => Ok(quad_ineq.1),
+        Err(nom::Err::Error(error)) => Err(error),
+        _ => unreachable!(),
+    }
 }
 
 #[cfg(test)]
@@ -125,6 +133,16 @@ mod tests {
             Ok(("", Quadratic::new("x".to_string(), 1, 11, 5,)))
         );
     }
+    #[test]
+    fn parse_quadratic_must_err() {
+        assert_eq!(
+            quadratic("x^2+8y+15"),
+            Err(nom::Err::Error(Error::InvalidCharacter {
+                expected: "x".to_string(),
+                found: "y".to_string()
+            }))
+        );
+    }
 
     #[test]
     fn parse_quadratic_inequality() {
@@ -151,7 +169,7 @@ mod tests {
     #[test]
     fn parse_and_get_solution_of_quadratic_inequality() {
         assert_eq!(
-            parse("x^2+3x-10≥0").get_solution(),
+            parse("x^2+3x-10≥0").unwrap().get_solution(),
             "x ≤ -5 OR x ≥ 2".to_string(),
         );
     }
