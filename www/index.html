@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>이차부등식의 해 구하기</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+    <style>
+      * {
+        font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        font-size: 20px;
+      }
+      #container {
+        width: 80%;
+        max-width: 400px;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      #container > * {
+        margin: 20px 0px;
+      }
+      #title {
+        font-size: 30px;
+        font-weight: 600;
+        text-align: center;
+      }
+      input {
+        padding: 5px;
+      }
+      #input {
+        border: none;
+        border-bottom: 2px solid hsl(0, 0%, 25%);
+        background-color: hsl(0, 0%, 90%);
+      }
+      #run {
+        border: none;
+        background-color: hsl(0, 0%, 90%);
+      }
+      #run:hover {
+        background-color: hsl(0, 0%, 85%);
+      }
+      #run:active {
+        background-color: hsl(0, 0%, 80%);
+      }
+      #result {
+        padding: 5px;
+        border-radius: 5px;
+        min-height: 1em;
+        background-color: hsl(0, 0%, 95%);
+      }
+      #result-title {
+        font-weight: 600;
+      }
+      #explain {
+        font-size: 14px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+    <div id="container">
+      <h1 id="title">이차부등식의 해 구하기</h1>
+      <input id="input" type="text" placeholder="x^2+3x-10>0" />
+      <input id="run" type="button" value="해 구하기">
+      <div id="result">
+        <div id="result-title">결과</div>
+        <div id="result_field">이차부등식을 입력하고 '해 구하기' 버튼을 눌러보세요!</div>
+      </div>
+      <a id="explain" href="https://github.com/jedeop/quadratic_inequality">GitHub에서 소스코드를 확인할 수 있습니다.</a>
+    </div>
+    <script src="./bootstrap.js"></script>
+  </body>
+</html>

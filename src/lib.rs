@@ -5,8 +5,21 @@ pub mod types;
 use error::Result;
 use parser::parse;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn solve(input: &str) -> Result<String> {
     Ok(parse(input)?.get_solution())
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn solve(input: &str) -> String {
+    match parse(input) {
+        Ok(result) => result.get_solution(),
+        Err(_) => "Something went wrong!".to_string(),
+    }
 }
 
 #[cfg(test)]
